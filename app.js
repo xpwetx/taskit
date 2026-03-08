@@ -1,28 +1,48 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const helmet = require("helmet");
+require("dotenv").config();
 
+// Routes
+const authRoutes = require("./routes/authRoutes");
+const taskRoutes = require("./routes/taskRoutes");
 
 const app = express();
+
+// Security middleware
+// Basic Helmet protection (safe version)
+app.use(
+  helmet({
+    contentSecurityPolicy: false, 
+  })
+);
+
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// authRoute
-const authRoutes = require("./routes/authRoutes");
+// Routes
 app.use("/api/auth", authRoutes);
-
-const taskRoutes = require("./routes/taskRoutes");
 app.use("/api/tasks", taskRoutes);
 
-// Connect to MongoDB
+// Test route
+app.get("/", (req, res) => {
+  res.send("Task API Running");
+});
+
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
-  .catch(err => console.log(err));
+  .catch((err) => console.error("MongoDB connection error:", err));
 
-app.get("/", (req, res) => {
-  res.send("API Running");
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Global error handler:", err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || "Server Error"
+  });
 });
 
 module.exports = app;
