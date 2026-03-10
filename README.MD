@@ -169,13 +169,8 @@ Optional query parameters for tasks
 
 ## Deployment
 
-The application can be deployed to platforms such as:
-
-* Render
-* Railway
-* Heroku
-
-Make sure environment variables are configured in the deployment environment.
+The application can be deployed to Render and can be reached at:
+https://taskit-5aib.onrender.com
 
 ---
 
@@ -183,8 +178,3 @@ Make sure environment variables are configured in the deployment environment.
 
 Created by Kathryn Joi Miranda
 
----
-
-## License
-
-This project is for educational purposes.
