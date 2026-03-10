@@ -11,15 +11,18 @@ const taskSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
+      minlength: 3,
+      maxlength: 100,
     },
 
     description: {
       type: String,
     },
 
-    completed: {
-      type: Boolean,
-      default: false,
+    status: {
+      type: String,
+      enum: ["Pending", "Completed", "Delayed"],
+      default: "Pending",
     },
 
     priority: {
@@ -35,6 +38,7 @@ const taskSchema = new mongoose.Schema(
     tags: [
       {
         type: String,
+        default: [],
       },
     ],
   },

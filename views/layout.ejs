@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/styles.css">
+  <title>TaskIt</title>
+  <style>
+    /* ---------- Base ---------- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    a {
+      text-decoration: none;
+      color: #007bff;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #222;
+    }
+
+    /* ---------- Navigation ---------- */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      background-color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    nav a {
+      margin-left: 15px;
+      font-weight: 500;
+    }
+
+    /* ---------- Flash Messages ---------- */
+    .flash-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+
+    .flash-error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+
+    /* ---------- Main Content ---------- */
+    main {
+      max-width: 900px;
+      margin: auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    /* ---------- Tables ---------- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+
+    table th {
+      background-color: #f1f1f1;
+    }
+
+    table tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+
+    table tr:hover {
+      background-color: #f0f8ff;
+    }
+
+    /* ---------- Forms ---------- */
+    form label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    form input[type="text"],
+    form input[type="date"],
+    form select,
+    form textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    form textarea {
+      resize: vertical;
+    }
+
+    form button {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    form button:hover {
+      background-color: #0056b3;
+    }
+
+    /* ---------- Inline Status Dropdown ---------- */
+    select[name="status"] {
+      padding: 5px 8px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 768px) {
+      nav {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      table th, table td {
+        font-size: 0.9rem;
+      }
+
+      form input[type="text"],
+      form select,
+      form textarea {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div>
+      <a href="/">TaskIt</a>
+    </div>
+    <div>
+      <% if (user) { %>
+        <span>Hi, <%= user.username %>!</span>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/logout">Logout</a>
+      <% } else { %>
+        <a href="/">Home</a>
+        <a href="/login">Login</a>
+        <a href="/register">Register</a>
+      <% } %>
+    </div>
+  </nav>
+
+  <main>
+    <% if (messages.success) { %>
+      <% messages.success.forEach(msg => { %>
+        <div class="flash-success"><%= msg %></div>
+      <% }) %>
+    <% } %>
+
+    <% if (messages.error) { %>
+      <% messages.error.forEach(msg => { %>
+        <div class="flash-error"><%= msg %></div>
+      <% }) %>
+    <% } %>
+
+    <%- body %>
+  </main>
+</body>
+</html>

@@ -1,0 +1,11 @@
+<h1>Welcome to TaskIt!</h1>
+<p>Manage your tasks easily and stay organized.</p>
+
+<% if (!user) { %>
+  <p>
+    <a href="/login">Login</a> or 
+    <a href="/register">Register</a> to get started.
+  </p>
+<% } else { %>
+  <p><a href="/dashboard">Go to Dashboard</a></p>
+<% } %>

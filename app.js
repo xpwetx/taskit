@@ -1,7 +1,13 @@
+// app.js
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const session = require("express-session");
+const flash = require("express-flash");
+const expressLayouts = require("express-ejs-layouts");
+const path = require("path");
 require("dotenv").config();
 
 // Routes
@@ -10,39 +16,102 @@ const taskRoutes = require("./routes/taskRoutes");
 
 const app = express();
 
-// Security middleware
-// Basic Helmet protection (safe version)
+// ----------------------
+// View Engine
+// ----------------------
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+app.use(expressLayouts);
+app.set("layout", "layout"); 
+
+// ----------------------
+// Serve Static Files
+// ----------------------
+app.use(express.static(path.join(__dirname, "public"))); 
+
+
+// ----------------------
+// Rate Limiter
+// ----------------------
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: "Too many requests from this IP, please try again later.",
+});
+
+// ----------------------
+// Security Middleware
+// ----------------------
 app.use(
   helmet({
     contentSecurityPolicy: false, 
   })
 );
 
-
-// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/tasks", taskRoutes);
+// ----------------------
+// Sessions + Flash
+// ----------------------
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "supersecret",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
 
-// Test route
-app.get("/", (req, res) => {
-  res.send("Task API Running");
+app.use(flash());
+
+// ----------------------
+// Global Template Vars
+// ----------------------
+app.use((req, res, next) => {
+  res.locals.user = req.session.user || null;
+  res.locals.messages = req.flash();
+  next();
 });
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
+// ----------------------
+// Routes
+// ----------------------
+// EJS routes
+app.use(authRoutes);
+app.use(taskRoutes);
+
+// API routes
+app.use("/api/auth", limiter, authRoutes);
+app.use("/api/tasks", taskRoutes);
+
+// Home page
+app.get("/", (req, res) => {
+  res.render("index");
+});
+
+// ----------------------
+// MongoDB
+// ----------------------
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-// Error handling middleware
+// ----------------------
+// Global Error Handler
+// ----------------------
 app.use((err, req, res, next) => {
   console.error("Global error handler:", err.stack);
-  res.status(err.status || 500).json({
-    message: err.message || "Server Error"
-  });
+
+  if (req.xhr || req.headers.accept?.includes("json")) {
+    return res
+      .status(err.status || 500)
+      .json({ message: err.message || "Server Error" });
+  }
+
+  req.flash("error", err.message || "Server Error");
+  res.redirect("back");
 });
 
 module.exports = app;

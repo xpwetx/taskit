@@ -1,0 +1,54 @@
+<h1>Create New Task</h1>
+
+<form action="/tasks/create" method="POST">
+
+  <label>
+    Title: 
+    <input type="text" name="title" required>
+  </label>
+  <br><br>
+
+  <label>
+    Description: 
+    <textarea name="description"></textarea>
+  </label>
+  <br><br>
+
+  <label>
+    Priority: 
+    <select name="priority">
+      <option value="Low">Low</option>
+      <option value="Medium" selected>Medium</option>
+      <option value="High">High</option>
+    </select>
+  </label>
+  <br><br>
+
+  <label>
+    Due Date: 
+    <input type="date" name="dueDate">
+  </label>
+  <br><br>
+
+  <label>
+    Tags (comma separated): 
+    <input type="text" name="tags">
+  </label>
+  <br><br>
+
+  <label>
+    Status:
+    <select name="status">
+      <option value="Pending" selected>Pending</option>
+      <option value="Completed">Completed</option>
+      <option value="Delayed">Delayed</option>
+    </select>
+  </label>
+  <br><br>
+
+  <button type="submit">Create Task</button>
+</form>
+
+<p>
+  <a href="/dashboard">Back to Dashboard</a>
+</p>

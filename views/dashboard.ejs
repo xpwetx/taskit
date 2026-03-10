@@ -1,0 +1,73 @@
+<div class="container">
+
+  <h1>Your Tasks</h1>
+
+  <!-- Flash messages -->
+  <% if (messages.success) { %>
+    <div class="flash-success"><%= messages.success %></div>
+  <% } %>
+  <% if (messages.error) { %>
+    <div class="flash-error"><%= messages.error %></div>
+  <% } %>
+
+  <!-- Search bar -->
+  <form method="GET" action="/dashboard" class="search-bar">
+    <input type="text" name="search" placeholder="Search tasks..." value="<%= search || '' %>">
+    <button type="submit">Search</button>
+    <a href="/dashboard" class="button">Clear</a>
+  </form>
+
+  <!-- Create task link -->
+  <p>
+    <a href="/tasks/create" class="button">Create New Task</a>
+  </p>
+
+  <!-- Task table -->
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Description</th>
+        <th>Priority</th>
+        <th>Due Date</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% tasks.forEach(task => { %>
+        <tr>
+          <td><%= task.title %></td>
+          <td><%= task.description %></td>
+          <td><%= task.priority %></td>
+          <td><%= task.dueDate ? new Date(task.dueDate).toDateString() : '-' %></td>
+          <td>
+            <form action="/tasks/update-status/<%= task._id %>" method="POST">
+              <select name="status" onchange="this.form.submit()">
+                <option value="Pending" <%= task.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                <option value="Completed" <%= task.status === 'Completed' ? 'selected' : '' %>>Completed</option>
+                <option value="Delayed" <%= task.status === 'Delayed' ? 'selected' : '' %>>Delayed</option>
+              </select>
+            </form>
+          </td>
+          <td class="actions">
+            <a href="/tasks/edit/<%= task._id %>" class="button edit">Edit</a>
+            <a href="/tasks/delete/<%= task._id %>" class="button delete">Delete</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <% if (currentPage > 1) { %>
+      <a href="/dashboard?page=<%= currentPage - 1 %>&search=<%= search %>">Previous</a>
+    <% } %>
+
+    Page <%= currentPage %> of <%= totalPages %>
+
+    <% if (currentPage < totalPages) { %>
+      <a href="/dashboard?page=<%= currentPage + 1 %>&search=<%= search %>">Next</a>
+    <% } %>
+  </div>

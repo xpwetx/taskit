@@ -1,0 +1,259 @@
+/* ---------------- Reset & Base Styles ---------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f6f8;
+  color: #333;
+  line-height: 1.6;
+  padding: 20px;
+}
+
+/* ---------------- Container ---------------- */
+.container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
+}
+
+/* ---------------- Navbar ---------------- */
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #3f51b5, #5c6bc0);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+nav a {
+  color: #fff;
+  font-weight: bold;
+  margin-left: 15px;
+}
+
+nav a:hover {
+  color: #ffeb3b;
+}
+
+nav span {
+  color: #ffeb3b;
+  font-weight: bold;
+}
+
+/* ---------------- Flash Messages ---------------- */
+.flash-success {
+  color: #155724;
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+}
+
+.flash-error {
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+}
+
+/* ---------------- Table ---------------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+}
+
+th {
+  background-color: #3f51b5;
+  color: #fff;
+}
+
+tr:nth-child(odd) {
+  background-color: #f0f4ff;
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+tr:hover {
+  background-color: #dce3ff;
+}
+
+td {
+  vertical-align: middle;
+}
+
+/* ---------------- Action Buttons ---------------- */
+.actions a.edit,
+.actions a.delete {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 5px;
+  font-weight: bold;
+  text-decoration: none;
+  color: #fff;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+.actions a.edit {
+  background-color: #4caf50;
+}
+
+.actions a.edit:hover {
+  background-color: #388e3c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.actions a.delete {
+  background-color: #e53935;
+}
+
+.actions a.delete:hover {
+  background-color: #c62828;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* ---------------- Status Badges ---------------- */
+.status {
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-weight: bold;
+  font-size: 0.9em;
+  text-align: center;
+  display: inline-block;
+}
+
+.status.pending {
+  background-color: #ffeb3b;
+  color: #000;
+}
+
+.status.completed {
+  background-color: #4caf50;
+}
+
+.status.delayed {
+  background-color: #e53935;
+}
+
+/* ---------------- Buttons (Create/Search) ---------------- */
+.button.create {
+  background-color: #ff9800;
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-weight: bold;
+  text-decoration: none;
+  display: inline-block;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
+}
+
+.button.create:hover {
+  background-color: #fb8c00;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+button, input[type="submit"] {
+  background-color: #3f51b5;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+button:hover, input[type="submit"]:hover {
+  background-color: #303f9f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* ---------------- Forms ---------------- */
+form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+form input, form select, form textarea {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+form textarea {
+  resize: vertical;
+}
+
+/* ---------------- Search Bar ---------------- */
+.search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 5px;
+  border: 1px solid #3f51b5;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.search-bar button {
+  background-color: #ff9800;
+  color: #fff;
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-weight: bold;
+}
+
+.search-bar button:hover {
+  background-color: #fb8c00;
+}
+
+/* ---------------- Pagination ---------------- */
+.pagination {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.pagination a {
+  margin: 0 10px;
+  font-weight: bold;
+  color: #3f51b5;
+  text-decoration: none;
+}
+
+.pagination a:hover {
+  text-decoration: underline;
+}
