@@ -181,7 +181,7 @@ Make sure environment variables are configured in the deployment environment.
 
 ## Author
 
-Created by Xavier
+Created by Kathryn Joi Miranda
 
 ---
 
