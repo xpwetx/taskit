@@ -1,147 +1,30 @@
 const Task = require("../models/Task");
+const xss = require("xss");
 
-// =====================
-// API Controllers (JWT)
-// =====================
+// ----------------------
+// SSR Controllers
+// ----------------------
 
-// Create a task
-exports.createTask = async (req, res) => {
-  try {
-    const task = await Task.create({ ...req.body, user: req.user.id });
-    res.status(201).json(task);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+// Dashboard
+const getDashboard = async (req, res) => {
+  if (!req.isAuthenticated()) {
+    req.flash("error", "Please log in to view the dashboard");
+    return res.redirect("/login");
   }
-};
 
-// Get all tasks for logged-in user
-exports.getTasks = async (req, res) => {
   try {
-    const query = { user: req.user.id };
-
-    // Search title OR description
-    if (req.query.search) {
-      query.$or = [
-        { title: { $regex: req.query.search, $options: "i" } },
-        { description: { $regex: req.query.search, $options: "i" } },
-      ];
-    }
-
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const sort = req.query.sort || "createdAt";
-
-    const tasks = await Task.find(query)
-      .sort(sort)
-      .skip((page - 1) * limit)
-      .limit(limit);
-
-    const total = await Task.countDocuments(query);
-
-    res.json({
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-      results: tasks.length,
-      tasks,
-    });
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Get a single task by ID
-exports.getTaskById = async (req, res) => {
-  try {
-    const task = await Task.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    });
-
-    if (!task) return res.status(404).json({ message: "Task not found" });
-
-    res.json(task);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Update a task
-exports.updateTask = async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
-
-    if (!task) return res.status(404).json({ message: "Task not found" });
-
-    if (task.user.toString() !== req.user.id)
-      return res.status(403).json({ message: "Not authorized" });
-
-    const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-
-    res.json(updatedTask);
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Delete a task
-exports.deleteTask = async (req, res) => {
-  try {
-    const userId = req.user ? req.user.id : req.session.user.id;
-
-    const task = await Task.findOne({ _id: req.params.id, user: userId });
-
-    if (!task) {
-      if (req.xhr || req.headers.accept.includes("json")) {
-        return res.status(404).json({ message: "Task not found" });
-      } else {
-        req.flash("error", "Task not found");
-        return res.redirect("/dashboard");
-      }
-    }
-
-    await task.deleteOne();
-
-    if (req.xhr || req.headers.accept.includes("json")) {
-      res.json({ message: "Task removed" });
-    } else {
-      req.flash("success", "Task deleted successfully!");
-      res.redirect("/dashboard");
-    }
-
-  } catch (err) {
-    if (req.xhr || req.headers.accept.includes("json")) {
-      res.status(500).json({ message: err.message });
-    } else {
-      req.flash("error", err.message);
-      res.redirect("/dashboard");
-    }
-  }
-};
-
-// =====================
-// EJS Controllers (Session)
-// =====================
-
-// Dashboard - list tasks with search
-exports.getDashboard = async (req, res) => {
-  try {
-
-    const page = parseInt(req.query.page) || 1;
-    const limit = 5; // tasks per page
+    const limit = 5;
     const skip = (page - 1) * limit;
 
-    let query = { user: req.session.user.id };
+    let query = { user: req.user.id };
 
     // Search
     if (req.query.search) {
+      const search = xss(req.query.search);
       query.$or = [
-        { title: { $regex: req.query.search, $options: "i" } },
-        { description: { $regex: req.query.search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -154,51 +37,68 @@ exports.getDashboard = async (req, res) => {
     const totalPages = Math.ceil(totalTasks / limit);
 
     res.render("dashboard", {
-      user: req.session.user,
+      user: req.user,
       tasks,
       search: req.query.search || "",
       currentPage: page,
       totalPages,
       messages: req.flash(),
     });
-
   } catch (err) {
     req.flash("error", err.message);
     res.redirect("/login");
   }
 };
 
-// Render create task form
-exports.getCreateTask = (req, res) => {
+// Create task form
+const getCreateTask = (req, res) => {
+  if (!req.isAuthenticated()) {
+    req.flash("error", "Please log in to create tasks");
+    return res.redirect("/login");
+  }
+
   res.render("createTask", {
-    user: req.session.user,
+    user: req.user,
     messages: req.flash(),
   });
 };
 
-// Handle create task form submission
-exports.postCreateTask = async (req, res) => {
+// Handle create task
+const postCreateTask = async (req, res) => {
+  if (!req.isAuthenticated()) {
+    req.flash("error", "Please log in to create tasks");
+    return res.redirect("/login");
+  }
+
   try {
-    await Task.create({ ...req.body, user: req.session.user.id });
+    const { title, description, priority, dueDate, tags } = req.body;
+
+    await Task.create({
+      title: xss(title),
+      description: xss(description),
+      priority: xss(priority),
+      dueDate,
+      tags: tags ? tags.split(",").map((t) => xss(t.trim())) : [],
+      user: req.user.id,
+    });
 
     req.flash("success", "Task created successfully!");
     res.redirect("/dashboard");
-
   } catch (err) {
     req.flash("error", err.message);
     res.redirect("/tasks/create");
   }
 };
 
-// Render edit task form
-exports.getEditTask = async (req, res) => {
+// Edit task form
+const getEditTask = async (req, res) => {
+  if (!req.isAuthenticated()) {
+    req.flash("error", "Please log in to edit tasks");
+    return res.redirect("/login");
+  }
+
   try {
-
-    const task = await Task.findOne({
-      _id: req.params.id,
-      user: req.session.user.id,
-    });
-
+    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
     if (!task) {
       req.flash("error", "Task not found");
       return res.redirect("/dashboard");
@@ -206,25 +106,24 @@ exports.getEditTask = async (req, res) => {
 
     res.render("editTask", {
       task,
-      user: req.session.user,
+      user: req.user,
       messages: req.flash(),
     });
-
   } catch (err) {
     req.flash("error", err.message);
     res.redirect("/dashboard");
   }
 };
 
-// Handle edit task form submission
-exports.postEditTask = async (req, res) => {
+// Handle edit task
+const postEditTask = async (req, res) => {
+  if (!req.isAuthenticated()) {
+    req.flash("error", "Please log in to edit tasks");
+    return res.redirect("/login");
+  }
+
   try {
-
-    const task = await Task.findOne({
-      _id: req.params.id,
-      user: req.session.user.id,
-    });
-
+    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
     if (!task) {
       req.flash("error", "Task not found");
       return res.redirect("/dashboard");
@@ -232,20 +131,166 @@ exports.postEditTask = async (req, res) => {
 
     const { title, description, priority, dueDate, tags, completed } = req.body;
 
-    task.title = title;
-    task.description = description;
-    task.priority = priority;
+    task.title = xss(title);
+    task.description = xss(description);
+    task.priority = xss(priority);
     task.dueDate = dueDate;
-    task.tags = tags ? tags.split(",").map((t) => t.trim()) : [];
+    task.tags = tags ? tags.split(",").map((t) => xss(t.trim())) : [];
     task.completed = completed === "on";
 
     await task.save();
 
     req.flash("success", "Task updated successfully!");
     res.redirect("/dashboard");
-
   } catch (err) {
     req.flash("error", err.message);
     res.redirect("/dashboard");
   }
+};
+
+// Delete task (SSR)
+const postDeleteTask = async (req, res) => {
+  if (!req.isAuthenticated()) {
+    req.flash("error", "Please log in to delete tasks");
+    return res.redirect("/login");
+  }
+
+  try {
+    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
+    if (!task) {
+      req.flash("error", "Task not found");
+      return res.redirect("/dashboard");
+    }
+
+    await task.deleteOne();
+    req.flash("success", "Task deleted successfully!");
+    res.redirect("/dashboard");
+  } catch (err) {
+    req.flash("error", err.message);
+    res.redirect("/dashboard");
+  }
+};
+
+// ----------------------
+// API Controllers (JWT / JSON)
+// ----------------------
+
+// Create task (API)
+const createTask = async (req, res) => {
+  if (!req.user) return res.status(403).json({ message: "Not authorized" });
+
+  try {
+    const { title, description, priority, dueDate, tags } = req.body;
+    const task = await Task.create({
+      title: xss(title),
+      description: xss(description),
+      priority: xss(priority),
+      dueDate,
+      tags: tags ? tags.map((t) => xss(t.trim())) : [],
+      user: req.user.id,
+    });
+    res.status(201).json({ message: "Task created", task });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get all tasks (API)
+const getTasks = async (req, res) => {
+  if (!req.user) return res.status(403).json({ message: "Not authorized" });
+
+  try {
+    const tasks = await Task.find({ user: req.user.id }).sort("-createdAt");
+    res.status(200).json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get single task by ID (API)
+const getTaskById = async (req, res) => {
+  if (!req.user) return res.status(403).json({ message: "Not authorized" });
+
+  try {
+    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    res.status(200).json(task);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update task (API)
+const updateTask = async (req, res) => {
+  if (!req.user) return res.status(403).json({ message: "Not authorized" });
+
+  try {
+    const { title, description, priority, dueDate, tags, completed } = req.body;
+
+    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    task.title = xss(title);
+    task.description = xss(description);
+    task.priority = xss(priority);
+    task.dueDate = dueDate;
+    task.tags = tags ? tags.map((t) => xss(t.trim())) : [];
+    task.completed = completed;
+
+    await task.save();
+    res.status(200).json({ message: "Task updated", task });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update task status (API)
+const updateStatus = async (req, res) => {
+  if (!req.user) return res.status(403).json({ message: "Not authorized" });
+
+  try {
+    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    task.status = xss(req.body.status);
+    await task.save();
+
+    res.status(200).json({ message: "Status updated", task });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Delete task (API)
+const deleteTask = async (req, res) => {
+  if (!req.user) return res.status(403).json({ message: "Not authorized" });
+
+  try {
+    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    await task.deleteOne();
+    res.status(200).json({ message: "Task deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ----------------------
+// Export all functions
+// ----------------------
+module.exports = {
+  getDashboard,
+  getCreateTask,
+  postCreateTask,
+  getEditTask,
+  postEditTask,
+  postDeleteTask,
+  createTask,
+  getTasks,
+  getTaskById,
+  updateTask,
+  updateStatus,
+  deleteTask,
 };

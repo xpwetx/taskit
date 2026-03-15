@@ -1,7 +1,6 @@
+// routes/taskRoutes.js
 const express = require("express");
 const router = express.Router();
-const { ensureAuthenticated, protect } = require("../middleware/authMiddleware");
-const Task = require("../models/Task");
 
 const {
   getDashboard,
@@ -9,70 +8,43 @@ const {
   postCreateTask,
   getEditTask,
   postEditTask,
-  deleteTask, // for EJS
-  getTasks,
+  postDeleteTask,
   createTask,
+  getTasks,
   getTaskById,
   updateTask,
+  updateStatus,
+  deleteTask
 } = require("../controllers/taskController");
 
 // =====================
-// EJS Front-End Routes (session-based)
+// SSR / EJS Routes
 // =====================
 
-// Dashboard (list all tasks)
-router.get("/dashboard", ensureAuthenticated, getDashboard);
+// Dashboard with pagination/search
+router.get("/dashboard", getDashboard);
 
-// Create task
-router.get("/tasks/create", ensureAuthenticated, getCreateTask);
-router.post("/tasks/create", ensureAuthenticated, postCreateTask);
+// Create task form
+router.get("/tasks/create", getCreateTask);
+router.post("/tasks/create", postCreateTask);
 
-// Edit task
-router.get("/tasks/edit/:id", ensureAuthenticated, getEditTask);
-router.post("/tasks/edit/:id", ensureAuthenticated, postEditTask);
+// Edit task form
+router.get("/tasks/edit/:id", getEditTask);
+router.post("/tasks/edit/:id", postEditTask);
 
-// Delete task
-router.get("/tasks/delete/:id", ensureAuthenticated, deleteTask);
-
-// =====================
-// New: Inline status update
-// =====================
-router.post("/tasks/update-status/:id", ensureAuthenticated, async (req, res, next) => {
-  try {
-    const taskId = req.params.id;
-    const { status } = req.body;
-
-    // Validate status
-    if (!["Pending", "Completed", "Delayed"].includes(status)) {
-      req.flash("error", "Invalid status value.");
-      return res.redirect("/dashboard");
-    }
-
-    // Update the task
-    await Task.findByIdAndUpdate(taskId, { status });
-
-    req.flash("success", "Task status updated!");
-    res.redirect("/dashboard");
-  } catch (err) {
-    next(err);
-  }
-});
+// Delete task (POST form)
+router.post("/tasks/delete/:id", postDeleteTask);
 
 // =====================
-// API Routes (JWT-protected)
+// API Routes (JWT)
 // =====================
 
-// Get all tasks / Create task
-router
-  .route("/api/tasks")
-  .get(protect, getTasks)
-  .post(protect, createTask);
-
-// Single task: Get / Update / Delete
-router
-  .route("/api/tasks/:id")
-  .get(protect, getTaskById)
-  .put(protect, updateTask)
-  .delete(protect, deleteTask);
+// All API routes assume JWT middleware sets req.user
+router.post("/api/tasks", createTask);
+router.get("/api/tasks", getTasks);
+router.get("/api/tasks/:id", getTaskById);
+router.put("/api/tasks/:id", updateTask);
+router.patch("/api/tasks/update-status/:id", updateStatus);
+router.delete("/api/tasks/:id", deleteTask);
 
 module.exports = router;

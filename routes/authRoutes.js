@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+
+
 const {
   registerUser,
   loginUser,
@@ -21,11 +23,13 @@ router.post("/login", postLogin);
 
 router.get("/logout", logout);
 
+module.exports = router;
+
 // =====================
 // API Routes (JWT Authentication)
 // =====================
-router.post("/api/register", registerUser);
-router.post("/api/login", loginUser);
+router.post("/register", registerUser);
+router.post("/login", loginUser);
 
 
 module.exports = router;

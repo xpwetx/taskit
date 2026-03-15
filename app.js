@@ -8,6 +8,9 @@ const session = require("express-session");
 const flash = require("express-flash");
 const expressLayouts = require("express-ejs-layouts");
 const path = require("path");
+const passport = require("passport");
+const passportInit = require("./config/passportInit");
+const xss = require('xss');
 require("dotenv").config();
 
 // Routes
@@ -52,12 +55,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
 // ----------------------
 // Sessions + Flash
 // ----------------------
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "supersecret",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
   })
@@ -65,14 +69,23 @@ app.use(
 
 app.use(flash());
 
+
+// Passport
+passportInit(passport);
+app.use(passport.initialize());
+app.use(passport.session());
+
+
 // ----------------------
 // Global Template Vars
 // ----------------------
 app.use((req, res, next) => {
-  res.locals.user = req.session.user || null;
+  res.locals.user = req.user || null;
   res.locals.messages = req.flash();
   next();
 });
+
+
 
 // ----------------------
 // Routes
@@ -110,8 +123,13 @@ app.use((err, req, res, next) => {
       .json({ message: err.message || "Server Error" });
   }
 
-  req.flash("error", err.message || "Server Error");
-  res.redirect("back");
+  if (req.flash) {
+    req.flash("error", err.message || "Server Error");
+    res.redirect("back");
+  } else {
+    res.status(500).send(err.message || "Server Error");
+  }
+
 });
 
 module.exports = app;
