@@ -9,11 +9,12 @@ const {
   getEditTask,
   postEditTask,
   postDeleteTask,
+  updateStatusSSR,
   createTask,
   getTasks,
   getTaskById,
   updateTask,
-  updateStatus,
+  updateStatusAPI,
   deleteTask
 } = require("../controllers/taskController");
 
@@ -35,6 +36,10 @@ router.post("/tasks/edit/:id", postEditTask);
 // Delete task (POST form)
 router.post("/tasks/delete/:id", postDeleteTask);
 
+// Update task status (SSR)
+router.post("/tasks/update-status/:id", updateStatusSSR);
+
+
 // =====================
 // API Routes (JWT)
 // =====================
@@ -44,7 +49,7 @@ router.post("/api/tasks", createTask);
 router.get("/api/tasks", getTasks);
 router.get("/api/tasks/:id", getTaskById);
 router.put("/api/tasks/:id", updateTask);
-router.patch("/api/tasks/update-status/:id", updateStatus);
+router.patch("/api/tasks/update-status/:id", updateStatusAPI);
 router.delete("/api/tasks/:id", deleteTask);
 
 module.exports = router;

@@ -98,8 +98,8 @@ const getEditTask = async (req, res) => {
   }
 
   try {
-    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
-    if (!task) {
+    const task = await Task.findById(req.params.id);
+    if (!task || task.user.toString() !== req.user.id) {
       req.flash("error", "Task not found");
       return res.redirect("/dashboard");
     }
@@ -123,13 +123,14 @@ const postEditTask = async (req, res) => {
   }
 
   try {
-    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
-    if (!task) {
+    const task = await Task.findById(req.params.id);
+    if (!task || task.user.toString() !== req.user.id) {
       req.flash("error", "Task not found");
       return res.redirect("/dashboard");
     }
 
-    const { title, description, priority, dueDate, tags, completed } = req.body;
+    const { title, description, priority, dueDate, tags, completed, status } =
+      req.body;
 
     task.title = xss(title);
     task.description = xss(description);
@@ -137,7 +138,7 @@ const postEditTask = async (req, res) => {
     task.dueDate = dueDate;
     task.tags = tags ? tags.split(",").map((t) => xss(t.trim())) : [];
     task.completed = completed === "on";
-
+    task.status = xss(status);
     await task.save();
 
     req.flash("success", "Task updated successfully!");
@@ -156,14 +157,39 @@ const postDeleteTask = async (req, res) => {
   }
 
   try {
-    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
-    if (!task) {
+    const task = await Task.findById(req.params.id);
+    if (!task || task.user.toString() !== req.user.id) {
       req.flash("error", "Task not found");
       return res.redirect("/dashboard");
     }
 
     await task.deleteOne();
     req.flash("success", "Task deleted successfully!");
+    res.redirect("/dashboard");
+  } catch (err) {
+    req.flash("error", err.message);
+    res.redirect("/dashboard");
+  }
+};
+
+// Update task status (SSR)
+const updateStatusSSR = async (req, res) => {
+  if (!req.isAuthenticated()) {
+    req.flash("error", "Please log in");
+    return res.redirect("/login");
+  }
+
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task || task.user.toString() !== req.user.id) {
+      req.flash("error", "Unauthorized");
+      return res.redirect("/dashboard");
+    }
+
+    task.status = xss(req.body.status);
+    await task.save();
+
+    req.flash("success", "Status updated successfully!");
     res.redirect("/dashboard");
   } catch (err) {
     req.flash("error", err.message);
@@ -212,9 +238,10 @@ const getTaskById = async (req, res) => {
   if (!req.user) return res.status(403).json({ message: "Not authorized" });
 
   try {
-    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
-    if (!task) return res.status(404).json({ message: "Task not found" });
-
+    const task = await Task.findById(req.params.id);
+    if (!task || task.user.toString() !== req.user.id) {
+      return res.status(404).json({ message: "Task not found" });
+    }
     res.status(200).json(task);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -226,10 +253,12 @@ const updateTask = async (req, res) => {
   if (!req.user) return res.status(403).json({ message: "Not authorized" });
 
   try {
-    const { title, description, priority, dueDate, tags, completed } = req.body;
-
-    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
-    if (!task) return res.status(404).json({ message: "Task not found" });
+    const task = await Task.findById(req.params.id);
+    if (!task || task.user.toString() !== req.user.id) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+    const { title, description, priority, dueDate, tags, completed, status } =
+      req.body;
 
     task.title = xss(title);
     task.description = xss(description);
@@ -246,13 +275,14 @@ const updateTask = async (req, res) => {
 };
 
 // Update task status (API)
-const updateStatus = async (req, res) => {
+const updateStatusAPI = async (req, res) => {
   if (!req.user) return res.status(403).json({ message: "Not authorized" });
 
   try {
-    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
-    if (!task) return res.status(404).json({ message: "Task not found" });
-
+    const task = await Task.findById(req.params.id);
+    if (!task || task.user.toString() !== req.user.id) {
+      return res.status(404).json({ message: "Task not found" });
+    }
     task.status = xss(req.body.status);
     await task.save();
 
@@ -267,9 +297,12 @@ const deleteTask = async (req, res) => {
   if (!req.user) return res.status(403).json({ message: "Not authorized" });
 
   try {
-    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
+    const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
-
+    if (!task || task.user.toString() !== req.user.id) {
+      req.flash("error", "Unauthorized");
+      return res.redirect("/dashboard");
+    }
     await task.deleteOne();
     res.status(200).json({ message: "Task deleted successfully" });
   } catch (err) {
@@ -287,10 +320,11 @@ module.exports = {
   getEditTask,
   postEditTask,
   postDeleteTask,
+  updateStatusSSR,
   createTask,
   getTasks,
   getTaskById,
   updateTask,
-  updateStatus,
+  updateStatusAPI,
   deleteTask,
 };
