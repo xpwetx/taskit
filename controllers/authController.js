@@ -1,6 +1,7 @@
 // controllers/authController.js
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
+const passport = require("passport");
 
 // Generate JWT
 const generateToken = (id) => {
@@ -103,29 +104,31 @@ exports.getLogin = (req, res) => {
 };
 
 // Handle Login Form
-exports.postLogin = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-
-    if (!user || !(await user.matchPassword(password))) {
-      req.flash("error", "Invalid credentials");
+exports.postLogin = (req, res, next) => {
+  console.log("POST /login hit");
+  passport.authenticate("local", (err, user, info) => {
+    if (err) {
+      console.error("Auth error:", err);
+      return next(err);
+    }
+    if (!user) {
+      console.log("Login failed:", info);
+      req.flash("error", info.message);
       return res.redirect("/login");
     }
-
-    req.session.user = { id: user._id, username: user.username };
-    req.flash("success", "Logged in successfully!");
-    res.redirect("/dashboard");
-  } catch (err) {
-    console.error("postLogin error:", err);
-    req.flash("error", err.message);
-    res.redirect("/login");
-  }
+    req.logIn(user, (err) => {
+      if (err) return next(err);
+      console.log("Login successful! Redirecting...");
+      return res.redirect("/dashboard");
+    });
+  })(req, res, next);
 };
 
 // Logout
-exports.logout = (req, res) => {
-  req.session.destroy(() => {
+exports.logout = (req, res, next) => {
+  req.logout((err) => {
+    if (err) return next(err);
+    req.flash("success", "Logged out successfully");
     res.redirect("/login");
   });
 };

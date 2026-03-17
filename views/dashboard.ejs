@@ -52,7 +52,9 @@
           </td>
           <td class="actions">
             <a href="/tasks/edit/<%= task._id %>" class="button edit">Edit</a>
-            <a href="/tasks/delete/<%= task._id %>" class="button delete">Delete</a>
+            <form action="/tasks/delete/<%= task._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this task?');">
+              <button type="submit">Delete</button>
+            </form>
           </td>
         </tr>
       <% }) %>

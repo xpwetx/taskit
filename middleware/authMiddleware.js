@@ -3,16 +3,18 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 // make sure user is logged in
-exports.ensureAuthenticated = (req, res, next) => {
-  if (req.session && req.session.user) {
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) 
     return next();
-  }
-  req.flash("error", "Please log in to view that resource");
+  
+  if (req.flash) 
+    req.flash("error", "Please log in to view that resource");
+  
   return res.redirect("/login");
-};
+}
 
 // protect API routes
-exports.protect = async (req, res, next) => {
+async function protect(req, res, next) {
   let token;
 
   if (
@@ -39,4 +41,40 @@ exports.protect = async (req, res, next) => {
     console.error("JWT auth error:", err);
     return res.status(401).json({ message: "Not authorized, token failed" });
   }
+}
+
+// ----------------------
+// Ownership check middleware (optional utility)
+// ----------------------
+async function checkTaskOwnership(req, res, next) {
+  const Task = require("../models/Task");
+  const task = await Task.findById(req.params.id);
+  if (!task) {
+    if (req.xhr || req.headers.accept?.includes("json")) {
+      return res.status(404).json({ message: "Task not found" });
+    } else {
+      if (req.flash) req.flash("error", "Task not found");
+      return res.redirect("/dashboard");
+    }
+  }
+
+  // Use task.user (not task.owner) to check ownership
+  if (!req.user || !task.user.equals(req.user._id)) {
+    if (req.xhr || req.headers.accept?.includes("json")) {
+      return res.status(403).json({ message: "Forbidden" });
+    } else {
+      if (req.flash) req.flash("error", "You are not authorized to access this task");
+      return res.redirect("/dashboard");
+    }
+  }
+
+
+  req.task = task;
+  next();
+}
+
+module.exports = {
+  ensureAuthenticated,
+  protect,
+  checkTaskOwnership,
 };

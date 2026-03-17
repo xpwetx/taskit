@@ -1,17 +1,24 @@
 <h1>Login</h1>
+<% if (messages.error) { %>
+  <ul>
+    <% messages.error.forEach(msg => { %>
+      <li style="color:red;"><%= msg %></li>
+    <% }) %>
+  </ul>
+<% } %>
 
 <form action="/login" method="POST">
 
   <label>
     Email:
-    <input type="email" name="email" required>
+    <input type="email" name="email" required autocomplete="email">
   </label>
 
   <br><br>
 
   <label>
     Password:
-    <input type="password" name="password" required>
+    <input type="password" name="password" required automplete="current-password">
   </label>
 
   <br><br>
