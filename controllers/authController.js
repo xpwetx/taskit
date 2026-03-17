@@ -105,10 +105,22 @@ exports.getLogin = (req, res) => {
 
 // Handle Login Form
 exports.postLogin = (req, res, next) => {
-  passport.authenticate("local", {
-    successRedirect: "/dashboard",
-    failureRedirect: "/login",
-    failureFlash: true,
+  console.log("POST /login hit");
+  passport.authenticate("local", (err, user, info) => {
+    if (err) {
+      console.error("Auth error:", err);
+      return next(err);
+    }
+    if (!user) {
+      console.log("Login failed:", info);
+      req.flash("error", info.message);
+      return res.redirect("/login");
+    }
+    req.logIn(user, (err) => {
+      if (err) return next(err);
+      console.log("Login successful! Redirecting...");
+      return res.redirect("/dashboard");
+    });
   })(req, res, next);
 };
 

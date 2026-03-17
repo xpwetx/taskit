@@ -1,27 +1,31 @@
 const Task = require("../models/Task");
-const xss = require("xss");
+const sanitizeHtml = require("sanitize-html");
+
+// Helper to sanitize strings or array of strings
+const sanitizeInput = (input) => {
+  if (!input) return input;
+  if (Array.isArray(input)) return input.map((t) => sanitizeHtml(t));
+  if (typeof input === "string") return sanitizeHtml(input);
+  return input;
+};
 
 // ----------------------
 // SSR Controllers
 // ----------------------
 
 // Dashboard
-const getDashboard = async (req, res) => {
-  if (!req.isAuthenticated()) {
-    req.flash("error", "Please log in to view the dashboard");
-    return res.redirect("/login");
-  }
 
+const getDashboard = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = 5;
     const skip = (page - 1) * limit;
 
-    let query = { user: req.user.id };
+    const query = { user: req.user.id };
 
     // Search
     if (req.query.search) {
-      const search = xss(req.query.search);
+      const search = sanitizeHtml(req.query.search);
       query.$or = [
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
@@ -46,17 +50,12 @@ const getDashboard = async (req, res) => {
     });
   } catch (err) {
     req.flash("error", err.message);
-    res.redirect("/login");
+    res.redirect("/");
   }
 };
 
 // Create task form
 const getCreateTask = (req, res) => {
-  if (!req.isAuthenticated()) {
-    req.flash("error", "Please log in to create tasks");
-    return res.redirect("/login");
-  }
-
   res.render("createTask", {
     user: req.user,
     messages: req.flash(),
@@ -65,20 +64,15 @@ const getCreateTask = (req, res) => {
 
 // Handle create task
 const postCreateTask = async (req, res) => {
-  if (!req.isAuthenticated()) {
-    req.flash("error", "Please log in to create tasks");
-    return res.redirect("/login");
-  }
-
   try {
     const { title, description, priority, dueDate, tags } = req.body;
 
     await Task.create({
-      title: xss(title),
-      description: xss(description),
-      priority: xss(priority),
+      title: sanitizeHtml(title),
+      description: sanitizeInput(description),
+      priority: sanitizeInput(priority),
       dueDate,
-      tags: tags ? tags.split(",").map((t) => xss(t.trim())) : [],
+      tags: tags ? sanitizeInput(tags.split(",").map((t) => t.trim())) : [],
       user: req.user.id,
     });
 
@@ -92,11 +86,6 @@ const postCreateTask = async (req, res) => {
 
 // Edit task form
 const getEditTask = async (req, res) => {
-  if (!req.isAuthenticated()) {
-    req.flash("error", "Please log in to edit tasks");
-    return res.redirect("/login");
-  }
-
   try {
     const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
     if (!task) {
@@ -117,11 +106,6 @@ const getEditTask = async (req, res) => {
 
 // Handle edit task
 const postEditTask = async (req, res) => {
-  if (!req.isAuthenticated()) {
-    req.flash("error", "Please log in to edit tasks");
-    return res.redirect("/login");
-  }
-
   try {
     const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
     if (!task) {
@@ -131,11 +115,11 @@ const postEditTask = async (req, res) => {
 
     const { title, description, priority, dueDate, tags, completed } = req.body;
 
-    task.title = xss(title);
-    task.description = xss(description);
-    task.priority = xss(priority);
+    task.title = sanitizeInput(title);
+    task.description = sanitizeInput(description);
+    task.priority = sanitizeInput(priority);
     task.dueDate = dueDate;
-    task.tags = tags ? tags.split(",").map((t) => xss(t.trim())) : [];
+    task.tags = tags ? sanitizeInput(tags.split(",").map((t) => t.trim())) : [];
     task.completed = completed === "on";
 
     await task.save();
@@ -150,11 +134,6 @@ const postEditTask = async (req, res) => {
 
 // Delete task (SSR)
 const postDeleteTask = async (req, res) => {
-  if (!req.isAuthenticated()) {
-    req.flash("error", "Please log in to delete tasks");
-    return res.redirect("/login");
-  }
-
   try {
     const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
     if (!task) {
@@ -177,16 +156,14 @@ const postDeleteTask = async (req, res) => {
 
 // Create task (API)
 const createTask = async (req, res) => {
-  if (!req.user) return res.status(403).json({ message: "Not authorized" });
-
   try {
     const { title, description, priority, dueDate, tags } = req.body;
     const task = await Task.create({
-      title: xss(title),
-      description: xss(description),
-      priority: xss(priority),
+      title: sanitizeInput(title),
+      description: sanitizeInput(description),
+      priority: sanitizeInput(priority),
       dueDate,
-      tags: tags ? tags.map((t) => xss(t.trim())) : [],
+      tags: tags ? sanitizeInput(tags.map((t) => t.trim())) : [],
       user: req.user.id,
     });
     res.status(201).json({ message: "Task created", task });
@@ -197,8 +174,6 @@ const createTask = async (req, res) => {
 
 // Get all tasks (API)
 const getTasks = async (req, res) => {
-  if (!req.user) return res.status(403).json({ message: "Not authorized" });
-
   try {
     const tasks = await Task.find({ user: req.user.id }).sort("-createdAt");
     res.status(200).json(tasks);
@@ -209,8 +184,6 @@ const getTasks = async (req, res) => {
 
 // Get single task by ID (API)
 const getTaskById = async (req, res) => {
-  if (!req.user) return res.status(403).json({ message: "Not authorized" });
-
   try {
     const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
     if (!task) return res.status(404).json({ message: "Task not found" });
@@ -223,19 +196,16 @@ const getTaskById = async (req, res) => {
 
 // Update task (API)
 const updateTask = async (req, res) => {
-  if (!req.user) return res.status(403).json({ message: "Not authorized" });
-
   try {
-    const { title, description, priority, dueDate, tags, completed } = req.body;
-
     const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
     if (!task) return res.status(404).json({ message: "Task not found" });
+    const { title, description, priority, dueDate, tags, completed } = req.body;
 
-    task.title = xss(title);
-    task.description = xss(description);
-    task.priority = xss(priority);
+    task.title = sanitizeInput(title);
+    task.description = sanitizeInput(description);
+    task.priority = sanitizeInput(priority);
     task.dueDate = dueDate;
-    task.tags = tags ? tags.map((t) => xss(t.trim())) : [];
+    task.tags = tags ? sanitizeInput(tags.map((t) => t.trim())) : [];
     task.completed = completed;
 
     await task.save();
@@ -247,13 +217,11 @@ const updateTask = async (req, res) => {
 
 // Update task status (API)
 const updateStatus = async (req, res) => {
-  if (!req.user) return res.status(403).json({ message: "Not authorized" });
-
   try {
     const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    task.status = xss(req.body.status);
+    task.status = sanitizeInput(req.body.status);
     await task.save();
 
     res.status(200).json({ message: "Status updated", task });
@@ -264,8 +232,6 @@ const updateStatus = async (req, res) => {
 
 // Delete task (API)
 const deleteTask = async (req, res) => {
-  if (!req.user) return res.status(403).json({ message: "Not authorized" });
-
   try {
     const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
     if (!task) return res.status(404).json({ message: "Task not found" });

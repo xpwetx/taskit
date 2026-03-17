@@ -5,13 +5,16 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const session = require("express-session");
-const flash = require("express-flash");
+const flash = require("connect-flash");
 const expressLayouts = require("express-ejs-layouts");
 const path = require("path");
 const passport = require("passport");
 const passportInit = require("./config/passportInit");
-const xss = require('xss');
+const sanitizeHtml = require("sanitize-html");
 require("dotenv").config();
+const Task = require("./models/Task");
+const { getDashboard } = require("./controllers/taskController");
+const { ensureAuthenticated } = require("./middleware/authMiddleware");
 
 // Routes
 const authRoutes = require("./routes/authRoutes");
@@ -25,13 +28,12 @@ const app = express();
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(expressLayouts);
-app.set("layout", "layout"); 
+app.set("layout", "layout");
 
 // ----------------------
 // Serve Static Files
 // ----------------------
-app.use(express.static(path.join(__dirname, "public"))); 
-
+app.use(express.static(path.join(__dirname, "public")));
 
 // ----------------------
 // Rate Limiter
@@ -41,40 +43,63 @@ const limiter = rateLimit({
   max: 100,
   message: "Too many requests from this IP, please try again later.",
 });
+app.use(limiter);
+
+// ----------------------
+// Body Parsers
+// ----------------------
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Sanitize
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === "object") {
+    for (const key in req.body) {
+      if (typeof req.body[key] === "string") {
+        req.body[key] = sanitizeHtml(req.body[key], {
+          allowedTags: [],
+          allowedAttributes: {},
+        });
+      }
+    }
+  }
+  next();
+});
 
 // ----------------------
 // Security Middleware
 // ----------------------
 app.use(
   helmet({
-    contentSecurityPolicy: false, 
+    contentSecurityPolicy: false,
   })
 );
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
 
 // ----------------------
 // Sessions + Flash
 // ----------------------
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  throw new Error("SESSION_SECRET is not defined in your environment!");
+}
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    cookie: { httpOnly: true, secure: false },
   })
 );
-
-app.use(flash());
-
 
 // Passport
 passportInit(passport);
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.use(flash());
 
 // ----------------------
 // Global Template Vars
@@ -85,23 +110,21 @@ app.use((req, res, next) => {
   next();
 });
 
-
-
 // ----------------------
 // Routes
 // ----------------------
-// EJS routes
-app.use(authRoutes);
-app.use(taskRoutes);
 
 // API routes
-app.use("/api/auth", limiter, authRoutes);
-app.use("/api/tasks", taskRoutes);
+app.use("/",authRoutes);
+app.use("/tasks", ensureAuthenticated, taskRoutes);
 
-// Home page
+app.get("/dashboard", ensureAuthenticated, getDashboard);
+// Public routes
 app.get("/", (req, res) => {
   res.render("index");
 });
+
+
 
 // ----------------------
 // MongoDB
@@ -125,11 +148,10 @@ app.use((err, req, res, next) => {
 
   if (req.flash) {
     req.flash("error", err.message || "Server Error");
-    res.redirect("back");
+    res.redirect(req.get("Referrer") || "/");
   } else {
     res.status(500).send(err.message || "Server Error");
   }
-
 });
 
 module.exports = app;
